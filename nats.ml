@@ -66,10 +66,30 @@ module IntNat : NATN = struct
   let int_of_nat a = a
   let nat_of_int a = a
 
-let rec helper (f:int list -> int list) (acc:int list) (x:int) : int list =
-  match x with
-  | 0 -> acc
-  | _ -> f (helper f acc (x-1))
 
+(*helper function to check overflow*)
+let check_overflow (lst : int list) : bool = 
+	let x = List.fold_left (fun acc x -> let (fst, snd, trd) = acc in if trd = max_int then (fst,x::snd, trd+1) 
+				else (x::fst,snd,trd+1)) ([], [], 0) lst in let (fst, snd, trd) = x in 
+	 			match snd with 
+	 			[] -> false
+	 			| _ -> true
 
-in helper (fun acc -> 1::acc) [] a
+module ListNat : NATN = struct
+	type t = int list 
+	exception Unrepresentable
+	let zero = []
+	let one = [1]
+	let (+) a b = let x = List.fold_left (fun acc x -> x::acc) a b in if check_overflow x then raise Unrepresentable else x
+	let ( * ) a b = let z = List.fold_left (fun acc x -> List.rev_append a acc) [] b in if check_overflow z  then raise Unrepresentable
+						else z
+	let ( < ) a b =  let length x = List.fold_left (fun acc x -> acc + 1) 0 x in (length a) < (length b)
+	let ( === ) a b = let length x = List.fold_left (fun acc x -> acc + 1) 0 x in (length a) = (length b)
+	let int_of_nat a = let length x = List.fold_left (fun acc b -> acc +1) 0 x in if check_overflow a 
+							then raise Unrepresentable else length a
+	let nat_of_int a = let rec concat (f: int list -> int list) (acc: int list) (x : int) : int list = 
+		match x with 
+		0 -> acc
+		| _ -> f (concat f acc (x-1))
+		in concat (fun acc -> 1::acc) [] a
+
