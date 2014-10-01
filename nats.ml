@@ -12,15 +12,14 @@ module type NATN = sig
 
   (* ( + ) is associative : (a+b)+c === a+(b+c) 
   * ( + ) is communitive : a+b === b+a 
-  * Precondition: *)
+  * Precondition: type t can be int
+  Postcondition: return the sum of type t *)
   val ( + ) : t -> t -> t
-
   (* ( * ) is associative : (a * b) * c === a * (b * c) 
   * ( * ) is communitive : a * b === b * a 
-  * ( * ) is distributive over ( + ) : a * (b + c) === (a * b) + (a * c)  *)
+  * ( * ) is distributive over ( + ) : 
+  * (a * (b + c)) === (a * b) + (a * c) *)
   val ( * ) : t -> t -> t 
-
-
   val ( < ) : t -> t -> bool
   val ( === ) : t -> t -> bool
 			    
@@ -67,7 +66,9 @@ module IntNat : NATN = struct
   let nat_of_int a = a
 
 
-(*helper function to check overflow*)
+(* This helper function checks overflow. Returns boolean if there are max_int elements
+int lst 1 and the remaining elements exist in lst 2. If lst 2 exists, 
+then we know that there is an "overflow" in lst 1 *)
 let check_overflow (lst : int list) : bool = 
 	let x = List.fold_left (fun acc x -> let (fst, snd, trd) = acc in if trd = max_int then (fst,x::snd, trd+1) 
 				else (x::fst,snd,trd+1)) ([], [], 0) lst in let (fst, snd, trd) = x in 
@@ -76,6 +77,9 @@ let check_overflow (lst : int list) : bool =
 	 			| _ -> true
 
 module ListNat : NATN = struct
+(*The list [a1;...;an] represents the natural number n. This is, 
+the list lst represents length(lst). The empty list represents 0. 
+The values of the list elements are irrelevant. *)
 	type t = int list 
 	exception Unrepresentable
 	let zero = []
@@ -92,4 +96,18 @@ module ListNat : NATN = struct
 		0 -> acc
 		| _ -> f (concat f acc (x-1))
 		in concat (fun acc -> 1::acc) [] a
+
+
+
+
+(*This module will take t of any type and will convert it 
+to a natrual number. Here, there is no previous knowledge of the 
+representation type t. *)
+module NatConversionFn (N: NATN) = struct
+	let int_of_nat(n: N.t) : int = 
+
+(* binary representation of naturals ex 10011 is = 19 because
+2^4 + 0 + 0 + 2^1 + 2^0 = 19. In a nested way, 10011 with base 2
+(((1*2+0)*2+0)*2+1)*2+1 = 19
+(for n bit number, (b(n-1) * 2 + b(n-2)*2 + b(n-3)*2..)*2+b(0)
 
