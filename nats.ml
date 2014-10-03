@@ -50,10 +50,11 @@ let sign_int ( n : int ) : sign =
 let sum_overflows ( i1 : int ) ( i2 : int ) : bool =
   sign_int i1 = sign_int i2 && sign_int ( i1 + i2 ) <> sign_int i1
 let mult_overflows (i1:int) (i2:int) : bool =
+  if i1 = 0 || i2 = 0 then false else
   if sign_int i1 = sign_int i2 then sign_int (i1*i2) <> Positive || i1*i2 < max i1 i2 else
     sign_int (i1*i2) <> Negative ||  i1*i2 > (~-) (max i1 i2)
 
-module IntNat : NATN = struct
+module IntNat : NATN with  type t = int = struct
   type t = int
   exception Unrepresentable
   let zero = 0
@@ -63,7 +64,7 @@ module IntNat : NATN = struct
   let ( < ) a b = a < b
   let ( === ) a b = a = b
   let int_of_nat a = a
-  let nat_of_int a = a
+  let nat_of_int a = if a < 0 then raise Unrepresentable else a 
 end 
 
 
@@ -77,7 +78,7 @@ let check_overflow (lst : int list) : bool =
 	 			[] -> false
 	 			| _ -> true
 
-module ListNat : NATN = struct
+module ListNat : NATN with type t = int list = struct
 (*The list [a1;...;an] represents the natural number n. This is, 
 the list lst represents length(lst). The empty list represents 0. 
 The values of the list elements are irrelevant. *)
@@ -85,21 +86,31 @@ The values of the list elements are irrelevant. *)
 	exception Unrepresentable
 	let zero = []
 	let one = [1]
-	let (+) a b = let plus = List.fold_left (fun acc x -> x::acc) a b 
-                in if check_overflow plus then raise Unrepresentable else plus
-	let ( * ) a b = let mult = List.fold_left (fun acc x -> List.rev_append a acc) [] b  
-                  in if check_overflow mult then raise Unrepresentable else mult
-	let ( < ) a b =  let length l = List.fold_left (fun acc x -> Pervasives.(+) acc 1) 0 l 
-                   in (length a) < (length b)
-	let ( === ) a b = let length l = List.fold_left (fun acc x -> Pervasives.(+) acc 1) 0 l 
-                    in (length a) = (length b)
+	let (+) a b = List.fold_left (fun acc x -> x::acc) a b 
+                
+	let ( * ) a b = List.fold_left (fun acc x -> List.rev_append a acc) [] b  
+                  
+	let ( < ) a b =  let less_than = List.fold_left (fun acc x -> begin match acc with
+                                                                      | (false, []) -> (true, [])
+                                                                      | (false, h::t) -> (false, t)
+                                                                      | (true, _ ) -> (true, [])   
+                                                                end ) (false, a) b
+                   in fst less_than
+
+	let ( === ) a b = let equals = List.fold_left (fun acc x -> begin match acc with
+                                                      | (true, []) -> (false, [])
+                                                      | (true, h::t) -> (true, t)
+                                                      | (false, _ ) -> (false, []) 
+                                                 end ) (true, a) b
+                    in fst equals
+                    
 	let int_of_nat a = let l = List.fold_left (fun acc x -> Pervasives.(+) acc 1) 0 a
                      in if check_overflow a then raise Unrepresentable else l
 	let nat_of_int a = let rec concat (f: int list -> int list) (acc: int list) (x : int) : int list = 
 		                    match x with 
 		                    | 0 -> acc
 		                    | _ -> concat f (f acc) (x-1)
-		                 in concat (fun acc -> 1::acc) [] a
+		                 in if Pervasives.( < ) a 0 then raise Unrepresentable else concat (fun acc -> 1::acc) [] a
 end
 
 
@@ -129,20 +140,20 @@ end
 
 
 
-module AlienNatFn ( M : AlienMapping ): NATN with type t = M.aliensym list = struct
+module AlienNatFn ( M : AlienMapping ): (NATN with type t = M.aliensym list) = struct
   type t = M.aliensym list
   let zero = [M.zero]
   let one = [M.one]
   let ( + ) a b = List.rev_append a b 
   let ( * ) a b = let rec mult_aliensym (f: M.aliensym list -> M.aliensym -> M.aliensym list ) (acc: M.aliensym list) (i:int) (sym: M.aliensym) : M.aliensym list =
                     match i with 
-                    | 0 -> M.zero::acc
+                    | 0 -> acc
                     | _ -> mult_aliensym f (f acc sym) (i-1) sym
                   in
                   let mult_aliensym_list (c: M.aliensym) (d: M.aliensym list) : M.aliensym list =
-                    List.fold_left (fun acc x -> List.rev_append (mult_aliensym (fun acc1 x1 -> x1::acc1) [] (M.int_of_aliensym c) x ) acc ) [] d
+                    List.fold_left (fun acc x -> List.rev_append acc (mult_aliensym (fun acc1 x1 -> x1::acc1) [] (M.int_of_aliensym c) x )  ) [] d
                   in 
-                  List.fold_left (fun acc x -> List.rev_append acc (mult_aliensym_list x b) ) [] a 
+                  M.zero :: (List.fold_left (fun acc x -> List.rev_append acc (mult_aliensym_list x b) ) [] a )
 
   let less_than_helper (lst : M.aliensym list) : M.aliensym list =
     List.fold_left (fun acc x -> let rec helper (f: t -> t) (acc: t) (i : int) : t =
@@ -170,5 +181,5 @@ module AlienNatFn ( M : AlienMapping ): NATN with type t = M.aliensym list = str
                        match i with
                        | 0 -> M.zero::acc
                        | _ -> helper f (f acc) (i-1)
-                     in helper (fun b -> M.one::b) [] a
+                     in if Pervasives.( < ) a 0 then raise Unrepresentable else helper (fun b -> M.one::b) [] a
 end
