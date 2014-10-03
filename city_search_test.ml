@@ -8,7 +8,7 @@ TEST_UNIT "city_search_test2" = assert_true( city_search ithaca ((42.43,-76.55),
 	["Oldport Harbour"; "Greater Ithaca Activities Center"; "First Presbyterian Church"; "0alvary Baptist Church"; "Fall Creek School";    
  "South Hill School"])
 (*Checking a region with a diagonal less than the min_diagonal constant*)
-TEST_UNIT "city_search_test3" = assert_true( city_search ithaca (42.43673949,-76.47660641),(42.43673951,-76.47660639))) = ["Belle Sherman School"] )
+TEST_UNIT "city_search_test3" = assert_true( city_search ithaca ((42.43673949,-76.47660641),(42.43673951,-76.47660639))  = ["Belle Sherman School"] )
 
 
 

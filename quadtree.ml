@@ -122,8 +122,8 @@ let rec insert (q: 'a quadtree) (c : coord) (s:'a) : 'a quadtree  =
   the given region *)
   let check_node = fun q z -> match q with
                               Leaf (r,_) | Node (r,_,_,_,_) -> match z with 
-                                                               | 1 -> if NW.contains2 r c then insert q c s else q
-                                                               | 2 -> if NE.contains2 r c then insert q c s else q
+                                                               | 1 -> if NE.contains2 r c then insert q c s else q
+                                                               | 2 -> if NW.contains2 r c then insert q c s else q
                                                                | 3 -> if SW.contains2 r c then insert q c s else q
                                                                | 4 -> if SE.contains2 r c then insert q c s else q
                                                                | _ -> q                       
@@ -151,7 +151,8 @@ let rec fold_quad (f: 'a -> (coord * 'b)  -> 'a)
 (*This function folds the function argument to every object the quadtree
 that are within the region argument. Precondition: The region may not be 
 entirely contained within the same subtree. Returns: accumulator 'a that will
-be used in the recursive call for folding over the quadtree.*)	   
+be used in the recursive call for folding over the quadtree.
+* If the region is not contained in the quadtree, then it will return a *)	   
 let rec fold_region (f: 'a -> coord * 'b -> 'a) (a : 'a) (t : 'b quadtree) 
   (r : region) : 'a
   =
